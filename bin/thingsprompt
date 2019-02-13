@@ -139,7 +139,11 @@ if __name__ == '__main__':
     client = Client()
     loop = asyncio.get_event_loop()
 
-    loop.run_until_complete(connect(client, args))
+    try:
+        loop.run_until_complete(connect(client, args))
+    except Exception as e:
+        print(f'{e.__class__.__name__}: {e}', file=sys.stderr)
+        exit(1)
 
     with patch_stdout():
         loop.run_until_complete(prompt_loop(client, args))
