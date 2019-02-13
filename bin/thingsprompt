@@ -23,7 +23,7 @@ from thingsdb.client import Client  # nopep8
 from thingsdb.exceptions import ThingsDBError  # nopep8
 
 
-USE_FUN = re.compile(r'^\s*use\s*\(([\'"0-9a-zA-Z_]+)\);?$')
+USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+);?$')
 
 
 async def connect(client, args):
@@ -122,8 +122,9 @@ if __name__ == '__main__':
         '--collection', '-c',
         type=str,
         help=(
-            'collection to use, if not given, the root is used; '
-            'the collection can be changed within the promt with use(...)'))
+            'name or the collection to use, if not given the root is used;'
+            'the collection can be changed within the prompt by using '
+            'the command: `use ...`'))
 
     parser.add_argument(
         '--timeout',
@@ -145,4 +146,3 @@ if __name__ == '__main__':
 
     client.close()
     loop.run_until_complete(client.wait_closed())
-
