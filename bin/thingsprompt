@@ -1,0 +1,130 @@
+#!/usr/bin/python3
+'''SiriDB Prompt
+
+SiriDB Prompt can be used to manage, query, or insert data into a SiriDB
+database.
+
+:copyright: 2016, Jeroen van der Heijden (Transceptor Technology)
+'''
+import sys
+import argparse
+import asyncio
+import getpass
+import functools
+import re
+import signal
+import json
+import encodings.idna  # fixes idna encoding error
+from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.history import InMemoryHistory
+
+
+sys.path.insert(0, '../thingsdb/connectors/python3')
+from thingsdb.client import Client  # nopep8
+
+
+USE_FUN = re.compile(r'^\s*use\s*\(([\'"0-9a-zA-Z_]+)\);?$')
+
+
+async def connect(client, args):
+    await client.connect(args.node, args.port, timeout=args.timeout)
+    await client.authenticate(args.user, args.password, timeout=args.timeout)
+
+
+def set_prompt(client, session):
+    target = client.get_target()
+    target = f' ({target})' if target else ''
+
+    session.message = \
+        f'{client._username}@{client.connection_info()}{target}> '
+
+
+async def prompt_loop(client, args):
+    try:
+        history_file = os.path.join(
+            os.path.expanduser('~'),
+            '.thingsprompt.history'
+        )
+        history = FileHistory(history_file)
+    except Exception as e:
+        history = InMemoryHistory()
+
+    client.get_target()
+
+    session = PromptSession()
+    set_prompt(client, session)
+
+    while True:
+        try:
+            query = await session.prompt(async_=True)
+
+            use = USE_FUN.match(query)
+            if use:
+                target = use.group(1)
+                try:
+                    target = int(target)
+                except ValueError:
+                    target = target.strip('\'"')
+
+                client.use(target)
+                set_prompt(client, session)
+                continue
+
+            res = await client.query(query, timeout=args.timeout)
+            print(json.dumps(res, sort_keys=True, indent=4))
+
+        except (EOFError, KeyboardInterrupt):
+            return
+
+if __name__ == '__main__':
+    use_asyncio_event_loop()
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--node', '-n',
+        type=str,
+        default='localhost',
+        help='node address')
+
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=9200,
+        help='TCP port where the node is listening on for API calls')
+
+    parser.add_argument(
+        '--user', '-u',
+        type=str,
+        required=True,
+        help='user name')
+
+    parser.add_argument(
+        '--password', '-p',
+        type=str,
+        help='password, will be prompted if not given')
+
+    parser.add_argument(
+        '--timeout',
+        type=int,
+        help='connect and query timeout in seconds')
+
+    args = parser.parse_args()
+
+    if args.password is None:
+        args.password = getpass.getpass('password: ')
+
+    client = Client()
+    loop = asyncio.get_event_loop()
+
+    loop.run_until_complete(connect(client, args))
+
+    with patch_stdout():
+        loop.run_until_complete(prompt_loop(client, args))
+
+    client.close()
+    loop.run_until_complete(client.wait_closed())
+
