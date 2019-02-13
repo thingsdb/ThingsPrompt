@@ -1,10 +1,7 @@
 #!/usr/bin/python3
-'''SiriDB Prompt
+'''ThingsPrompt
 
-SiriDB Prompt can be used to manage, query, or insert data into a SiriDB
-database.
-
-:copyright: 2016, Jeroen van der Heijden (Transceptor Technology)
+Shell client for ThingsDB
 '''
 import sys
 import argparse
@@ -21,10 +18,10 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.history import InMemoryHistory
 
-
 sys.path.insert(0, '../thingsdb/connectors/python3')
 from thingsdb.client import Client  # nopep8
-from thingsdb.exceptions import ThingsDBError
+from thingsdb.exceptions import ThingsDBError  # nopep8
+
 
 USE_FUN = re.compile(r'^\s*use\s*\(([\'"0-9a-zA-Z_]+)\);?$')
 
