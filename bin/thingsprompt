@@ -24,7 +24,7 @@ from prompt_toolkit.history import InMemoryHistory
 
 sys.path.insert(0, '../thingsdb/connectors/python3')
 from thingsdb.client import Client  # nopep8
-
+from thingsdb.exceptions import ThingsDBError
 
 USE_FUN = re.compile(r'^\s*use\s*\(([\'"0-9a-zA-Z_]+)\);?$')
 
@@ -42,6 +42,15 @@ def set_prompt(client, session):
         f'{client._username}@{client.connection_info()}{target}> '
 
 
+def set_target(client, target):
+    try:
+        target = int(target)
+    except ValueError:
+        target = target.strip('\'"')
+
+    client.use(target)
+
+
 async def prompt_loop(client, args):
     try:
         history_file = os.path.join(
@@ -52,7 +61,8 @@ async def prompt_loop(client, args):
     except Exception as e:
         history = InMemoryHistory()
 
-    client.get_target()
+    if args.collection:
+        set_target(client, args.collection)
 
     session = PromptSession()
     set_prompt(client, session)
@@ -73,8 +83,12 @@ async def prompt_loop(client, args):
                 set_prompt(client, session)
                 continue
 
-            res = await client.query(query, timeout=args.timeout)
-            print(json.dumps(res, sort_keys=True, indent=4))
+            try:
+                res = await client.query(query, timeout=args.timeout)
+            except ThingsDBError as e:
+                print(f'{e.__class__.__name__}: {e}')
+            else:
+                print(json.dumps(res, sort_keys=True, indent=4))
 
         except (EOFError, KeyboardInterrupt):
             return
@@ -106,6 +120,13 @@ if __name__ == '__main__':
         '--password', '-p',
         type=str,
         help='password, will be prompted if not given')
+
+    parser.add_argument(
+        '--collection', '-c',
+        type=str,
+        help=(
+            'collection to use, if not given, the root is used; '
+            'the collection can be changed within the promt with use(...)'))
 
     parser.add_argument(
         '--timeout',
