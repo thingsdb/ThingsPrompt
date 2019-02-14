@@ -3,24 +3,21 @@
 
 Shell client for ThingsDB
 '''
+import os
 import sys
 import argparse
 import asyncio
 import getpass
-import functools
 import re
-import signal
 import json
-import encodings.idna  # fixes idna encoding error
+from setproctitle import setproctitle
 from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.history import InMemoryHistory
-
-sys.path.insert(0, '../thingsdb/connectors/python3')
-from thingsdb.client import Client  # nopep8
-from thingsdb.exceptions import ThingsDBError  # nopep8
+from thingsdb.client import Client
+from thingsdb.exceptions import ThingsDBError
 
 
 USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+);?$')
@@ -34,9 +31,9 @@ async def connect(client, args):
 def set_prompt(client, session):
     target = client.get_target()
     target = f' ({target})' if target else ''
-
-    session.message = \
-        f'{client._username}@{client.connection_info()}{target}> '
+    title = f'{client._username}@{client.connection_info()}{target}'
+    print(f'\33]0;{title}\a', end='', flush=True)
+    session.message = f'{title}> '
 
 
 def set_target(client, target):
@@ -61,7 +58,7 @@ async def prompt_loop(client, args):
     if args.collection:
         set_target(client, args.collection)
 
-    session = PromptSession()
+    session = PromptSession(history=history)
     set_prompt(client, session)
 
     while True:
@@ -80,6 +77,10 @@ async def prompt_loop(client, args):
                 set_prompt(client, session)
                 continue
 
+            if not client.is_connected():
+                print('not connected')
+                continue
+
             try:
                 res = await client.query(query, timeout=args.timeout)
             except ThingsDBError as e:
@@ -91,6 +92,7 @@ async def prompt_loop(client, args):
             return
 
 if __name__ == '__main__':
+    setproctitle('thingsprompt')
     use_asyncio_event_loop()
 
     parser = argparse.ArgumentParser()

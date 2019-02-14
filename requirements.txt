@@ -1,0 +1,3 @@
+python-thingsdb
+setproctitle
+prompt-toolkit==2.0.8
