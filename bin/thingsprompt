@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/joente/miniconda3/bin/python3
 '''ThingsPrompt
 
 Shell client for ThingsDB
@@ -21,6 +21,7 @@ from thingsdb.exceptions import ThingsDBError
 
 
 USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+);?$')
+DEEP_FUN = re.compile(r'^\s*deep\s+([0-9]+);?$')
 
 
 async def connect(client, args):
@@ -43,6 +44,19 @@ def set_target(client, target):
         target = target.strip('\'"')
 
     client.use(target)
+
+
+def check_deep(deep):
+    if args.deep < 0 or args.deep > 127:
+        print(f'argument `deep` should be between 0 and 127, got {args.deep}')
+        return False
+    return True
+
+
+def set_deep(args, deep):
+    if check_deep(deep):
+        args.deep = deep
+        print(f'set `depth` level to {args.deep}')
 
 
 async def prompt_loop(client, args):
@@ -77,12 +91,20 @@ async def prompt_loop(client, args):
                 set_prompt(client, session)
                 continue
 
+            deep = DEEP_FUN.match(query)
+            if deep:
+                set_deep(args, int(deep.group(1)))
+                continue
+
             if not client.is_connected():
                 print('not connected')
                 continue
 
             try:
-                res = await client.query(query, timeout=args.timeout)
+                res = await client.query(
+                    query,
+                    deep=args.deep,
+                    timeout=args.timeout)
             except ThingsDBError as e:
                 print(f'{e.__class__.__name__}: {e}')
             else:
@@ -121,6 +143,12 @@ if __name__ == '__main__':
         help='password, will be prompted if not given')
 
     parser.add_argument(
+        '--deep',
+        type=int,
+        default=1,
+        help='specify to which depth `things` should be fully fetched')
+
+    parser.add_argument(
         '--collection', '-c',
         type=str,
         help=(
@@ -137,6 +165,9 @@ if __name__ == '__main__':
 
     if args.password is None:
         args.password = getpass.getpass('password: ')
+
+    if not check_deep(args.deep):
+        exit(1)
 
     client = Client()
     loop = asyncio.get_event_loop()
