@@ -22,6 +22,7 @@ from thingsdb.exceptions import ThingsDBError
 
 USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+);?$')
 DEEP_FUN = re.compile(r'^\s*deep\s+([0-9]+);?$')
+ALL_FUN = re.compile(r'^\s*all\s+(true|false);?$')
 
 
 async def connect(client, args):
@@ -96,6 +97,11 @@ async def prompt_loop(client, args):
                 set_deep(args, int(deep.group(1)))
                 continue
 
+            retall = ALL_FUN.match(query)
+            if retall:
+                args.all = retall.group(1) == 'true'
+                continue
+
             if not client.is_connected():
                 print('not connected')
                 continue
@@ -104,6 +110,7 @@ async def prompt_loop(client, args):
                 res = await client.query(
                     query,
                     deep=args.deep,
+                    all=args.all,
                     timeout=args.timeout)
             except ThingsDBError as e:
                 print(f'{e.__class__.__name__}: {e}')
@@ -147,6 +154,11 @@ if __name__ == '__main__':
         type=int,
         default=1,
         help='specify to which depth `things` should be fully fetched')
+
+    parser.add_argument(
+        '--all', '-a',
+        action='store_true',
+        help='return all statement results instead of just the last one')
 
     parser.add_argument(
         '--collection', '-c',
