@@ -71,15 +71,16 @@ def on_enter(event):
         event.app.current_buffer.validate_and_handle()
 
 
-
 @bindings.add('tab')
 def _(event):
     """Insert TAB"""
     event.app.current_buffer.insert_text(TAB)
 
+
 @bindings.add('escape', 'enter', filter=is_active)
 def _(event):
     event.current_buffer.insert_text('\n')
+
 
 @bindings.add('enter', filter=is_active)
 def _(event):
@@ -96,36 +97,6 @@ def _(event):
             buffer.delete_before_cursor()
     else:
         buffer.delete_before_cursor()
-
-
-class Multiline:
-    def __init__(self):
-        self._lines = []
-        self._indent = ''
-
-    def append(self, line):
-        self._lines.append(line)
-
-    def as_str(self):
-        return '\n'.join(self._lines)
-
-    def get_message(self):
-        indent = ''
-
-        if not self._lines:
-            return indent
-
-        last_line = self._lines[-1]
-        for idx, c in enumerate(last_line):
-            if not c.isspace():
-                break
-
-        indent = last_line[:idx]
-
-        if last_line and last_line[-1] in ('{', '(', '['):
-            indent += TAB
-
-        return indent
 
 
 async def connect(client, args):
@@ -198,7 +169,6 @@ async def prompt_loop(client, args):
                 session.multiline = True
                 set_multi_input_prompt(session)
                 continue
-
 
             use = USE_FUN.match(query)
             if use:
