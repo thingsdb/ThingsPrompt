@@ -1,4 +1,4 @@
-#!/home/joente/miniconda3/bin/python3
+#!/home/joente/miniconda3/bin/python
 '''ThingsPrompt
 
 Shell client for ThingsDB
@@ -11,11 +11,13 @@ import getpass
 import re
 import json
 from setproctitle import setproctitle
-from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
-from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.shortcuts import PromptSession
 from thingsdb.client import Client
 from thingsdb.exceptions import ThingsDBError
 
@@ -23,6 +25,107 @@ from thingsdb.exceptions import ThingsDBError
 USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+);?$')
 DEEP_FUN = re.compile(r'^\s*deep\s+([0-9]+);?$')
 ALL_FUN = re.compile(r'^\s*all\s+(true|false);?$')
+TAB = ' ' * 4
+HELP = '''
+Special commands:
+
+?
+    This help.
+use <collection>
+    Switch to a collection, or `use 0` for switching to thingsdb root.
+deep <level>
+    Return statements using a specified level, for example deep 2
+all <bool>
+    When `true`, all statement results are returned, if `false` only the last.
+*empty line
+    Enable multiline query. A new empty line will send the query.
+'''
+
+bindings = KeyBindings()
+session = None
+
+
+@Condition
+def is_active():
+    return session.multiline
+
+
+def on_enter(event):
+    last_enter_idx = event.app.current_buffer.text.rfind('\n')
+    last_line = event.app.current_buffer.text[last_enter_idx+1:].rstrip()
+
+    if last_line:
+        for idx, c in enumerate(last_line):
+            if not c.isspace():
+                break
+
+        indent = last_line[:idx]
+
+        if last_line and last_line[-1] in ('{', '(', '['):
+            indent += TAB
+
+        event.app.current_buffer.insert_text('\n' + indent)
+    else:
+        session.multiline = False
+        set_prompt(session.client, session)
+        event.app.current_buffer.validate_and_handle()
+
+
+
+@bindings.add('tab')
+def _(event):
+    """Insert TAB"""
+    event.app.current_buffer.insert_text(TAB)
+
+@bindings.add('escape', 'enter', filter=is_active)
+def _(event):
+    event.current_buffer.insert_text('\n')
+
+@bindings.add('enter', filter=is_active)
+def _(event):
+    on_enter(event)
+
+
+@bindings.add('backspace', filter=is_active)
+def _(event):
+    buffer = event.app.current_buffer
+    text = buffer.text[:buffer.cursor_position]
+    indent = len(text) - len(text.rstrip(' '))
+    if indent and indent % 4 == 0:
+        for _ in range(4):
+            buffer.delete_before_cursor()
+    else:
+        buffer.delete_before_cursor()
+
+
+class Multiline:
+    def __init__(self):
+        self._lines = []
+        self._indent = ''
+
+    def append(self, line):
+        self._lines.append(line)
+
+    def as_str(self):
+        return '\n'.join(self._lines)
+
+    def get_message(self):
+        indent = ''
+
+        if not self._lines:
+            return indent
+
+        last_line = self._lines[-1]
+        for idx, c in enumerate(last_line):
+            if not c.isspace():
+                break
+
+        indent = last_line[:idx]
+
+        if last_line and last_line[-1] in ('{', '(', '['):
+            indent += TAB
+
+        return indent
 
 
 async def connect(client, args):
@@ -36,6 +139,10 @@ def set_prompt(client, session):
     title = f'{client._username}@{client.connection_info()}{target}'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
+
+
+def set_multi_input_prompt(session):
+    session.message = ''
 
 
 def set_target(client, target):
@@ -61,6 +168,7 @@ def set_deep(args, deep):
 
 
 async def prompt_loop(client, args):
+    global session
     try:
         history_file = os.path.join(
             os.path.expanduser('~'),
@@ -74,11 +182,23 @@ async def prompt_loop(client, args):
         set_target(client, args.collection)
 
     session = PromptSession(history=history)
+    session.client = client
+
     set_prompt(client, session)
 
     while True:
         try:
-            query = await session.prompt(async_=True)
+            query = await session.prompt(async_=True, key_bindings=bindings)
+
+            if query.strip() == '?':
+                print(HELP)
+                continue
+
+            if query == '':
+                session.multiline = True
+                set_multi_input_prompt(session)
+                continue
+
 
             use = USE_FUN.match(query)
             if use:
