@@ -1,4 +1,4 @@
-#!/home/joente/miniconda3/bin/python
+#!/usr/bin/env python
 '''ThingsPrompt
 
 Shell client for ThingsDB
