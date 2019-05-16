@@ -22,9 +22,10 @@ from thingsdb.client import Client
 from thingsdb.exceptions import ThingsDBError
 
 
-USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+);?$')
-DEEP_FUN = re.compile(r'^\s*deep\s+([0-9]+);?$')
-ALL_FUN = re.compile(r'^\s*all\s+(true|false);?$')
+USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
+SCOPE_FUN = re.compile(r'^\s*scope\s+(thingsdb|node|\S*)\s*;?\s*$')
+DEEP_FUN = re.compile(r'^\s*deep\s+([0-9]+)\s*;?\s*$')
+ALL_FUN = re.compile(r'^\s*all\s+(true|false)\s*;?\s*$')
 TAB = ' ' * 4
 HELP = '''
 Special commands:
@@ -32,7 +33,9 @@ Special commands:
 ?
     This help.
 use <collection>
-    Switch to a collection, or `use 0` for switching to thingsdb root.
+    Switch to a collection (id or name)
+scope <thingsdb|node>
+    Switch to `thingsdb` or `node` scope
 deep <level>
     Return statements using a specified level, for example deep 2
 all <bool>
@@ -105,9 +108,8 @@ async def connect(client, args):
 
 
 def set_prompt(client, session):
-    target = client.get_target()
-    target = f' ({target})' if target else ''
-    title = f'{client._username}@{client.connection_info()}{target}'
+    target = client.get_target().name()
+    title = f'{client._username}@{client.connection_info()} ({target})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
 
@@ -182,6 +184,21 @@ async def prompt_loop(client, args):
                 set_prompt(client, session)
                 continue
 
+            scope = SCOPE_FUN.match(query)
+            if scope:
+                target = scope.group(1)
+                if target == 'node':
+                    target = client.node
+                elif target == 'thingsdb':
+                    target = client.thingsdb
+                else:
+                    print(
+                        'invalid scope; should be either `thingsdb` or `node`')
+                    continue
+                client.use(target)
+                set_prompt(client, session)
+                continue
+
             deep = DEEP_FUN.match(query)
             if deep:
                 set_deep(args, int(deep.group(1)))
@@ -200,7 +217,7 @@ async def prompt_loop(client, args):
                 res = await client.query(
                     query,
                     deep=args.deep,
-                    all=args.all,
+                    all_=args.all,
                     timeout=args.timeout)
             except ThingsDBError as e:
                 print(f'{e.__class__.__name__}: {e}')
@@ -251,12 +268,25 @@ if __name__ == '__main__':
         help='return all statement results instead of just the last one')
 
     parser.add_argument(
+        '--scope', '-s',
+        choices=['thingsdb', 'node', 'collection'],
+        default='thingsdb',
+        help=(
+            'set the initial scope; '
+            'if the scope is set to `collection`, then the `--collection` '
+            'argument is required; '
+            'the collection/scope can be changed within the prompt by using '
+            'the command: `use ...`'
+        ))
+
+    parser.add_argument(
         '--collection', '-c',
         type=str,
         help=(
-            'name or the collection to use, if not given the root is used;'
-            'the collection can be changed within the prompt by using '
-            'the command: `use ...`'))
+            'name of the collection to use; '
+            'the collection/scope can be changed within the prompt by using '
+            'the command: `use ...`'
+        ))
 
     parser.add_argument(
         '--timeout',
@@ -267,6 +297,14 @@ if __name__ == '__main__':
 
     if args.password is None:
         args.password = getpass.getpass('password: ')
+
+    if args.collection is None and args.scope == 'collection':
+        sys.exit(
+            'scope `collection` is used; '
+            'a collection is required, see `--collection`')
+
+    if args.collection is not None:
+        args.scope = 'collection'
 
     if not check_deep(args.deep):
         exit(1)
