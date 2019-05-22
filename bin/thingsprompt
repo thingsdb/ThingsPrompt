@@ -69,6 +69,8 @@ def on_enter(event):
 
         event.app.current_buffer.insert_text('\n' + indent)
     else:
+        if not event.app.current_buffer.text.strip():
+            event.app.current_buffer.insert_text('nil;')
         session.multiline = False
         set_prompt(session.client, session)
         event.app.current_buffer.validate_and_handle()
@@ -153,6 +155,8 @@ async def prompt_loop(client, args):
 
     if args.collection:
         set_target(client, args.collection)
+    elif args.scope == 'node':
+        client.use(client.node)
 
     session = PromptSession(history=history)
     session.client = client
@@ -168,9 +172,10 @@ async def prompt_loop(client, args):
                 continue
 
             if query == '':
-                session.multiline = True
-                set_multi_input_prompt(session)
-                continue
+                if session.multiline is False:
+                    session.multiline = True
+                    set_multi_input_prompt(session)
+                    continue
 
             use = USE_FUN.match(query)
             if use:
