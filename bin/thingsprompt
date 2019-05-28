@@ -22,23 +22,29 @@ from thingsdb.client import Client
 from thingsdb.exceptions import ThingsDBError
 
 
-USE_FUN = re.compile(r'^\s*use\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
-SCOPE_FUN = re.compile(r'^\s*scope\s+(thingsdb|node|\S*)\s*;?\s*$')
-DEEP_FUN = re.compile(r'^\s*deep\s+([0-9]+)\s*;?\s*$')
-ALL_FUN = re.compile(r'^\s*all\s+(true|false)\s*;?\s*$')
+USE_FUN = re.compile(r'^\s*u(se)?\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
+SCOPE_FUN = re.compile(r'^\s*s(cope)?\s+(thingsdb|node|\S*)\s*;?\s*$')
+DEEP_FUN = re.compile(r'^\s*d(eep)?\s+([0-9]+)\s*;?\s*$')
+ALL_FUN = re.compile(r'^\s*a(ll)?\s+(true|false)\s*;?\s*$')
+NODE_TARGET = re.compile(r'^\s*n(ode)?\s+(.*)$')
+THINGSDB_TARGET = re.compile(r'^\s*t(hingsdb)?\s+(.*)$')
 TAB = ' ' * 4
 HELP = '''
 Special commands:
 
 ?
     This help.
-use <collection>
+u/use <collection>
     Switch to a collection (id or name)
-scope <thingsdb|node>
+s/scope <thingsdb|node>
     Switch to `thingsdb` or `node` scope
-deep <level>
+n/node <query>
+    Target node scope with a single query
+t/thingsdb <query>
+    Target thingsdb scope with a singel query
+d/deep <level>
     Return statements using a specified level, for example deep 2
-all <bool>
+a/all <bool>
     When `true`, all statement results are returned, if `false` only the last.
 *empty line
     Enable multiline query. A new empty line will send the query.
@@ -179,7 +185,7 @@ async def prompt_loop(client, args):
 
             use = USE_FUN.match(query)
             if use:
-                target = use.group(1)
+                target = use.group(2)
                 try:
                     target = int(target)
                 except ValueError:
@@ -191,7 +197,7 @@ async def prompt_loop(client, args):
 
             scope = SCOPE_FUN.match(query)
             if scope:
-                target = scope.group(1)
+                target = scope.group(2)
                 if target == 'node':
                     target = client.node
                 elif target == 'thingsdb':
@@ -206,13 +212,25 @@ async def prompt_loop(client, args):
 
             deep = DEEP_FUN.match(query)
             if deep:
-                set_deep(args, int(deep.group(1)))
+                set_deep(args, int(deep.group(2)))
                 continue
 
             retall = ALL_FUN.match(query)
             if retall:
-                args.all = retall.group(1) == 'true'
+                args.all = retall.group(2) == 'true'
                 continue
+
+            target = NODE_TARGET.match(query)
+            if target:
+                query = target.group(2)
+                target = client.node
+            else:
+                target = THINGSDB_TARGET.match(query)
+                if target:
+                    query = target.group(2)
+                    target = client.thingsdb
+                else:
+                    target = None
 
             if not client.is_connected():
                 print('not connected')
@@ -221,6 +239,7 @@ async def prompt_loop(client, args):
             try:
                 res = await client.query(
                     query,
+                    target=target,
                     deep=args.deep,
                     all_=args.all,
                     timeout=args.timeout)
