@@ -26,8 +26,8 @@ USE_FUN = re.compile(r'^\s*u(se)?\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
 SCOPE_FUN = re.compile(r'^\s*s(cope)?\s+(thingsdb|node|\S*)\s*;?\s*$')
 DEEP_FUN = re.compile(r'^\s*d(eep)?\s+([0-9]+)\s*;?\s*$')
 ALL_FUN = re.compile(r'^\s*a(ll)?\s+(true|false)\s*;?\s*$')
-NODE_TARGET = re.compile(r'^\s*n(ode)?\s+(.*)$')
-THINGSDB_TARGET = re.compile(r'^\s*t(hingsdb)?\s+(.*)$')
+NODE_SCOPE = re.compile(r'^\s*n(ode)?\s+(.*)$')
+THINGSDB_SCOPE = re.compile(r'^\s*t(hingsdb)?\s+(.*)$')
 TAB = ' ' * 4
 HELP = '''
 Special commands:
@@ -39,9 +39,9 @@ u/use <collection>
 s/scope <thingsdb|node>
     Switch to `thingsdb` or `node` scope
 n/node <query>
-    Target node scope with a single query
+    Set node scope with a single query
 t/thingsdb <query>
-    Target thingsdb scope with a singel query
+    Set thingsdb scope with a singel query
 d/deep <level>
     Return statements using a specified level, for example deep 2
 a/all <bool>
@@ -116,8 +116,8 @@ async def connect(client, args):
 
 
 def set_prompt(client, session):
-    target = client.get_target().name()
-    title = f'{client._username}@{client.connection_info()} ({target})'
+    scope = client.get_scope().name()
+    title = f'{client._username}@{client.connection_info()} ({scope})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
 
@@ -126,13 +126,13 @@ def set_multi_input_prompt(session):
     session.message = ''
 
 
-def set_target(client, target):
+def set_scope(client, scope):
     try:
-        target = int(target)
+        scope = int(scope)
     except ValueError:
-        target = target.strip('\'"')
+        scope = scope.strip('\'"')
 
-    client.use(target)
+    client.use(scope)
 
 
 def check_deep(deep):
@@ -160,7 +160,7 @@ async def prompt_loop(client, args):
         history = InMemoryHistory()
 
     if args.collection:
-        set_target(client, args.collection)
+        set_scope(client, args.collection)
     elif args.scope == 'node':
         client.use(client.node)
 
@@ -185,28 +185,28 @@ async def prompt_loop(client, args):
 
             use = USE_FUN.match(query)
             if use:
-                target = use.group(2)
+                scope = use.group(2)
                 try:
-                    target = int(target)
+                    scope = int(scope)
                 except ValueError:
-                    target = target.strip('\'"')
+                    scope = scope.strip('\'"')
 
-                client.use(target)
+                client.use(scope)
                 set_prompt(client, session)
                 continue
 
             scope = SCOPE_FUN.match(query)
             if scope:
-                target = scope.group(2)
-                if target == 'node':
-                    target = client.node
-                elif target == 'thingsdb':
-                    target = client.thingsdb
+                scope = scope.group(2)
+                if scope == 'node':
+                    scope = client.node
+                elif scope == 'thingsdb':
+                    scope = client.thingsdb
                 else:
                     print(
                         'invalid scope; should be either `thingsdb` or `node`')
                     continue
-                client.use(target)
+                client.use(scope)
                 set_prompt(client, session)
                 continue
 
@@ -220,17 +220,17 @@ async def prompt_loop(client, args):
                 args.all = retall.group(2) == 'true'
                 continue
 
-            target = NODE_TARGET.match(query)
-            if target:
-                query = target.group(2)
-                target = client.node
+            scope = NODE_SCOPE.match(query)
+            if scope:
+                query = scope.group(2)
+                scope = client.node
             else:
-                target = THINGSDB_TARGET.match(query)
-                if target:
-                    query = target.group(2)
-                    target = client.thingsdb
+                scope = THINGSDB_SCOPE.match(query)
+                if scope:
+                    query = scope.group(2)
+                    scope = client.thingsdb
                 else:
-                    target = None
+                    scope = None
 
             if not client.is_connected():
                 print('not connected')
@@ -239,7 +239,7 @@ async def prompt_loop(client, args):
             try:
                 res = await client.query(
                     query,
-                    target=target,
+                    target=scope,
                     deep=args.deep,
                     all_=args.all,
                     timeout=args.timeout)
