@@ -20,6 +20,10 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
 from thingsdb.client import Client
 from thingsdb.exceptions import ThingsDBError
+from thingsdb.client.scope import (
+    node as node_scope,
+    thingsdb as thingsdb_scope
+)
 
 
 USE_FUN = re.compile(r'^\s*u(se)?\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
@@ -162,7 +166,7 @@ async def prompt_loop(client, args):
     if args.collection:
         set_scope(client, args.collection)
     elif args.scope == 'node':
-        client.use(client.node)
+        client.use(node_scope)
 
     session = PromptSession(history=history)
     session.client = client
@@ -199,9 +203,9 @@ async def prompt_loop(client, args):
             if scope:
                 scope = scope.group(2)
                 if scope == 'node':
-                    scope = client.node
+                    scope = node_scope
                 elif scope == 'thingsdb':
-                    scope = client.thingsdb
+                    scope = thingsdb_scope
                 else:
                     print(
                         'invalid scope; should be either `thingsdb` or `node`')
@@ -223,7 +227,7 @@ async def prompt_loop(client, args):
             scope = NODE_SCOPE.match(query)
             if scope:
                 query = scope.group(2)
-                scope = client.node
+                scope = node_scope
             else:
                 scope = THINGSDB_SCOPE.match(query)
                 if scope:
