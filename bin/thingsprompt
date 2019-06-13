@@ -120,7 +120,7 @@ async def connect(client, args):
 
 
 def set_prompt(client, session):
-    scope = client.get_scope().name()
+    scope = client.get_scope_name()
     title = f'{client._username}@{client.connection_info()} ({scope})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
@@ -232,7 +232,7 @@ async def prompt_loop(client, args):
                 scope = THINGSDB_SCOPE.match(query)
                 if scope:
                     query = scope.group(2)
-                    scope = client.thingsdb
+                    scope = thingsdb_scope
                 else:
                     scope = None
 
