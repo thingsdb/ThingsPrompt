@@ -29,8 +29,8 @@ from thingsdb.client.scope import (
 USE_FUN = re.compile(r'^\s*u(se)?\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
 SCOPE_FUN = re.compile(r'^\s*s(cope)?\s+(thingsdb|node|\S*)\s*;?\s*$')
 DEEP_FUN = re.compile(r'^\s*d(eep)?\s+([0-9]+)\s*;?\s*$')
-NODE_SCOPE = re.compile(r'^\s*n(ode)?\s+(.*)$')
-THINGSDB_SCOPE = re.compile(r'^\s*t(hingsdb)?\s+(.*)$')
+NODE_SCOPE = re.compile(r'^\s*n(ode)?:\s+(.*)$')
+THINGSDB_SCOPE = re.compile(r'^\s*t(hingsdb)?:\s+(.*)$')
 TAB = ' ' * 4
 HELP = '''
 Special commands:
