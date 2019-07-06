@@ -111,14 +111,14 @@ def _(event):
         buffer.delete_before_cursor()
 
 
-async def connect(client, args):
+async def connect(client, args, auth):
     await client.connect(args.node, args.port, timeout=args.timeout)
-    await client.authenticate(args.user, args.password, timeout=args.timeout)
+    await client.authenticate(auth=auth, timeout=args.timeout)
 
 
 def set_prompt(client, session):
     scope = client.get_scope_name()
-    title = f'{client._username}@{client.connection_info()} ({scope})'
+    title = f'{client.connection_info()} ({scope})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
 
@@ -267,13 +267,17 @@ if __name__ == '__main__':
     parser.add_argument(
         '--user', '-u',
         type=str,
-        required=True,
         help='user name')
 
     parser.add_argument(
         '--password', '-p',
         type=str,
         help='password, will be prompted if not given')
+
+    parser.add_argument(
+        '--token', '-t',
+        type=str,
+        help='token key')
 
     parser.add_argument(
         '--deep',
@@ -309,8 +313,18 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.password is None:
-        args.password = getpass.getpass('password: ')
+    if args.token is None:
+        if args.user is None:
+            sys.exit('one of the arguments -t/--token or -u/--user is required')
+
+        if args.password is None:
+            args.password = getpass.getpass('password: ')
+
+        auth = [args.user, args.password]
+    else:
+        if args.user is not None:
+            sys.exit('use arguments -t/--token or -u/--user, not both')
+        auth = args.token
 
     if args.collection is None and args.scope == 'collection':
         sys.exit(
@@ -327,7 +341,7 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     try:
-        loop.run_until_complete(connect(client, args))
+        loop.run_until_complete(connect(client, args, auth))
     except Exception as e:
         print(f'{e.__class__.__name__}: {e}', file=sys.stderr)
         exit(1)
