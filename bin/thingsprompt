@@ -28,7 +28,6 @@ from thingsdb.client.scope import (
 
 USE_FUN = re.compile(r'^\s*u(se)?\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
 SCOPE_FUN = re.compile(r'^\s*s(cope)?\s+(thingsdb|node|\S*)\s*;?\s*$')
-DEEP_FUN = re.compile(r'^\s*d(eep)?\s+([0-9]+)\s*;?\s*$')
 NODE_SCOPE = re.compile(r'^\s*n(ode)?:\s+(.*)$')
 THINGSDB_SCOPE = re.compile(r'^\s*t(hingsdb)?:\s+(.*)$')
 TAB = ' ' * 4
@@ -45,8 +44,6 @@ n/node <query>
     Set node scope with a single query
 t/thingsdb <query>
     Set thingsdb scope with a singel query
-d/deep <level>
-    Return statements using a specified level, for example deep 2
 *empty line
     Enable multiline query. A new empty line will send the query.
 '''
@@ -135,20 +132,6 @@ def set_scope(client, scope):
 
     client.use(scope)
 
-
-def check_deep(deep):
-    if args.deep < 0 or args.deep > 127:
-        print(f'argument `deep` should be between 0 and 127, got {args.deep}')
-        return False
-    return True
-
-
-def set_deep(args, deep):
-    if check_deep(deep):
-        args.deep = deep
-        print(f'set `depth` level to {args.deep}')
-
-
 async def prompt_loop(client, args):
     global session
     try:
@@ -211,11 +194,6 @@ async def prompt_loop(client, args):
                 set_prompt(client, session)
                 continue
 
-            deep = DEEP_FUN.match(query)
-            if deep:
-                set_deep(args, int(deep.group(2)))
-                continue
-
             scope = NODE_SCOPE.match(query)
             if scope:
                 query = scope.group(2)
@@ -236,7 +214,6 @@ async def prompt_loop(client, args):
                 res = await client.query(
                     query,
                     target=scope,
-                    deep=args.deep,
                     timeout=args.timeout)
             except ThingsDBError as e:
                 print(f'{e.__class__.__name__}: {e}')
@@ -278,12 +255,6 @@ if __name__ == '__main__':
         '--token', '-t',
         type=str,
         help='token key')
-
-    parser.add_argument(
-        '--deep',
-        type=int,
-        default=1,
-        help='specify to which depth `things` should be fully fetched')
 
     parser.add_argument(
         '--scope', '-s',
@@ -333,9 +304,6 @@ if __name__ == '__main__':
 
     if args.collection is not None:
         args.scope = 'collection'
-
-    if not check_deep(args.deep):
-        exit(1)
 
     client = Client()
     loop = asyncio.get_event_loop()
