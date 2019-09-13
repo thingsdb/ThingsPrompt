@@ -5,7 +5,7 @@ Shell client for ThingsDB
 ## Installation
 Using pip:
 ```shell
-pip insall thingsprompt
+pip install thingsprompt
 ```
 
 Or, clone this project and use the setup

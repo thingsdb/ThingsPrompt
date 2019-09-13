@@ -20,32 +20,23 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
 from thingsdb.client import Client
 from thingsdb.exceptions import ThingsDBError
-from thingsdb.client.scope import (
-    node as node_scope,
-    thingsdb as thingsdb_scope
-)
 
 
-USE_FUN = re.compile(r'^\s*u(se)?\s+([\'"0-9a-zA-Z_]+)\s*;?\s*$')
-SCOPE_FUN = re.compile(r'^\s*s(cope)?\s+(thingsdb|node|\S*)\s*;?\s*$')
-NODE_SCOPE = re.compile(r'^\s*n(ode)?:\s+(.*)$')
-THINGSDB_SCOPE = re.compile(r'^\s*t(hingsdb)?:\s+(.*)$')
+USE_FUN = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s*$')
+SCOPE_QUERY = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s+(.*)$')
+
 TAB = ' ' * 4
 HELP = '''
 Special commands:
 
 ?
     This help.
-u/use <collection>
-    Switch to a collection (id or name)
-s/scope <thingsdb|node>
-    Switch to `thingsdb` or `node` scope
-n/node <query>
-    Set node scope with a single query
-t/thingsdb <query>
-    Set thingsdb scope with a singel query
-*empty line
-    Enable multiline query. A new empty line will send the query.
+<@scope>
+    Switch to another scope
+<@scope> <query>
+    Run a single query in a given scope
+CTRL + n
+    Insert a new line
 '''
 
 bindings = KeyBindings()
@@ -57,27 +48,27 @@ def is_active():
     return session.multiline
 
 
-def on_enter(event):
+def on_enter_new_line(event):
     last_enter_idx = event.app.current_buffer.text.rfind('\n')
     last_line = event.app.current_buffer.text[last_enter_idx+1:].rstrip()
 
-    if last_line:
-        for idx, c in enumerate(last_line):
-            if not c.isspace():
-                break
+    idx = 0
+    for idx, c in enumerate(last_line):
+        if not c.isspace():
+            break
 
-        indent = last_line[:idx]
+    indent = last_line[:idx]
 
-        if last_line and last_line[-1] in ('{', '(', '['):
-            indent += TAB
+    if last_line and last_line[-1] in ('{', '(', '['):
+        indent += TAB
 
-        event.app.current_buffer.insert_text('\n' + indent)
-    else:
-        if not event.app.current_buffer.text.strip():
-            event.app.current_buffer.insert_text('nil;')
-        session.multiline = False
-        set_prompt(session.client, session)
-        event.app.current_buffer.validate_and_handle()
+    event.app.current_buffer.insert_text('\n' + indent)
+
+    # if not event.app.current_buffer.text.strip():
+    #     event.app.current_buffer.insert_text('nil;')
+    # session.multiline = False
+    # set_prompt(session.client, session)
+    # event.app.current_buffer.validate_and_handle()
 
 
 @bindings.add('tab')
@@ -86,17 +77,12 @@ def _(event):
     event.app.current_buffer.insert_text(TAB)
 
 
-@bindings.add('escape', 'enter', filter=is_active)
+@bindings.add('c-n')
 def _(event):
-    event.current_buffer.insert_text('\n')
+    on_enter_new_line(event)
 
 
-@bindings.add('enter', filter=is_active)
-def _(event):
-    on_enter(event)
-
-
-@bindings.add('backspace', filter=is_active)
+@bindings.add('backspace')
 def _(event):
     buffer = event.app.current_buffer
     text = buffer.text[:buffer.cursor_position]
@@ -110,18 +96,18 @@ def _(event):
 
 async def connect(client, args, auth):
     await client.connect(args.node, args.port, timeout=args.timeout)
-    await client.authenticate(auth=auth, timeout=args.timeout)
+    await client.authenticate(*auth, timeout=args.timeout)
 
 
 def set_prompt(client, session):
-    scope = client.get_scope_name()
+    scope = client.get_scope()
     title = f'{client.connection_info()} ({scope})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
 
 
-def set_multi_input_prompt(session):
-    session.message = ''
+# def set_multi_input_prompt(session):
+#     session.message = ''
 
 
 def set_scope(client, scope):
@@ -131,6 +117,7 @@ def set_scope(client, scope):
         scope = scope.strip('\'"')
 
     client.use(scope)
+
 
 async def prompt_loop(client, args):
     global session
@@ -161,15 +148,9 @@ async def prompt_loop(client, args):
                 print(HELP)
                 continue
 
-            if query == '':
-                if session.multiline is False:
-                    session.multiline = True
-                    set_multi_input_prompt(session)
-                    continue
-
             use = USE_FUN.match(query)
             if use:
-                scope = use.group(2)
+                scope = use.group(1)
                 try:
                     scope = int(scope)
                 except ValueError:
@@ -179,32 +160,12 @@ async def prompt_loop(client, args):
                 set_prompt(client, session)
                 continue
 
-            scope = SCOPE_FUN.match(query)
-            if scope:
-                scope = scope.group(2)
-                if scope == 'node':
-                    scope = node_scope
-                elif scope == 'thingsdb':
-                    scope = thingsdb_scope
-                else:
-                    print(
-                        'invalid scope; should be either `thingsdb` or `node`')
-                    continue
-                client.use(scope)
-                set_prompt(client, session)
-                continue
-
-            scope = NODE_SCOPE.match(query)
+            scope = SCOPE_QUERY.match(query)
             if scope:
                 query = scope.group(2)
-                scope = node_scope
+                scope = scope.group(1)
             else:
-                scope = THINGSDB_SCOPE.match(query)
-                if scope:
-                    query = scope.group(2)
-                    scope = thingsdb_scope
-                else:
-                    scope = None
+                scope = None
 
             if not client.is_connected():
                 print('not connected')
@@ -213,7 +174,7 @@ async def prompt_loop(client, args):
             try:
                 res = await client.query(
                     query,
-                    target=scope,
+                    scope=scope,
                     timeout=args.timeout)
             except ThingsDBError as e:
                 print(f'{e.__class__.__name__}: {e}')
@@ -286,7 +247,8 @@ if __name__ == '__main__':
 
     if args.token is None:
         if args.user is None:
-            sys.exit('one of the arguments -t/--token or -u/--user is required')
+            sys.exit(
+                'one of the arguments -t/--token or -u/--user is required')
 
         if args.password is None:
             args.password = getpass.getpass('password: ')
