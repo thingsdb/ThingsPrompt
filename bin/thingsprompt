@@ -130,11 +130,6 @@ async def prompt_loop(client, args):
     except Exception as e:
         history = InMemoryHistory()
 
-    if args.collection:
-        set_scope(client, args.collection)
-    elif args.scope == 'node':
-        client.use(node_scope)
-
     session = PromptSession(history=history)
     session.client = client
 
@@ -219,24 +214,9 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--scope', '-s',
-        choices=['thingsdb', 'node', 'collection'],
-        default='thingsdb',
-        help=(
-            'set the initial scope; '
-            'if the scope is set to `collection`, then the `--collection` '
-            'argument is required; '
-            'the collection/scope can be changed within the prompt by using '
-            'the command: `use ...`'
-        ))
-
-    parser.add_argument(
-        '--collection', '-c',
         type=str,
-        help=(
-            'name of the collection to use; '
-            'the collection/scope can be changed within the prompt by using '
-            'the command: `use ...`'
-        ))
+        default='@thingsdb',
+        help='set the initial scope')
 
     parser.add_argument(
         '--timeout',
@@ -259,15 +239,8 @@ if __name__ == '__main__':
             sys.exit('use arguments -t/--token or -u/--user, not both')
         auth = args.token
 
-    if args.collection is None and args.scope == 'collection':
-        sys.exit(
-            'scope `collection` is used; '
-            'a collection is required, see `--collection`')
-
-    if args.collection is not None:
-        args.scope = 'collection'
-
     client = Client()
+    client.use(args.scope)
     loop = asyncio.get_event_loop()
 
     try:
