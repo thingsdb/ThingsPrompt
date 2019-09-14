@@ -10,6 +10,7 @@ import asyncio
 import getpass
 import re
 import json
+import base64
 from setproctitle import setproctitle
 from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
 from prompt_toolkit.filters import Condition
@@ -43,6 +44,13 @@ bindings = KeyBindings()
 session = None
 
 
+class BinEncode(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return base64.b64encode(obj).decode("utf-8")
+        return json.JSONEncoder.default(self, obj)
+
+
 @Condition
 def is_active():
     return session.multiline
@@ -63,12 +71,6 @@ def on_enter_new_line(event):
         indent += TAB
 
     event.app.current_buffer.insert_text('\n' + indent)
-
-    # if not event.app.current_buffer.text.strip():
-    #     event.app.current_buffer.insert_text('nil;')
-    # session.multiline = False
-    # set_prompt(session.client, session)
-    # event.app.current_buffer.validate_and_handle()
 
 
 @bindings.add('tab')
@@ -104,19 +106,6 @@ def set_prompt(client, session):
     title = f'{client.connection_info()} ({scope})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
-
-
-# def set_multi_input_prompt(session):
-#     session.message = ''
-
-
-def set_scope(client, scope):
-    try:
-        scope = int(scope)
-    except ValueError:
-        scope = scope.strip('\'"')
-
-    client.use(scope)
 
 
 async def prompt_loop(client, args):
@@ -174,7 +163,7 @@ async def prompt_loop(client, args):
             except ThingsDBError as e:
                 print(f'{e.__class__.__name__}: {e}')
             else:
-                print(json.dumps(res, sort_keys=True, indent=4))
+                print(json.dumps(res, sort_keys=True, indent=4, cls=BinEncode))
 
         except (EOFError, KeyboardInterrupt):
             return
