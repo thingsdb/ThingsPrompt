@@ -226,7 +226,7 @@ if __name__ == '__main__':
     else:
         if args.user is not None:
             sys.exit('use arguments -t/--token or -u/--user, not both')
-        auth = args.token
+        auth = [args.token]
 
     client = Client()
     client.use(args.scope)
