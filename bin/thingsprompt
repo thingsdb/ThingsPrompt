@@ -11,6 +11,7 @@ import getpass
 import re
 import json
 import base64
+import ssl
 from setproctitle import setproctitle
 from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
 from prompt_toolkit.filters import Condition
@@ -212,6 +213,11 @@ if __name__ == '__main__':
         type=int,
         help='connect and query timeout in seconds')
 
+    parser.add_argument(
+        '--ssl',
+        action='store_true',
+        help='Enable secure connection (SSL/TLS)')
+
     args = parser.parse_args()
 
     if args.token is None:
@@ -228,7 +234,7 @@ if __name__ == '__main__':
             sys.exit('use arguments -t/--token or -u/--user, not both')
         auth = [args.token]
 
-    client = Client()
+    client = Client(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS) if args.ssl else None)
     client.use(args.scope)
     loop = asyncio.get_event_loop()
 
