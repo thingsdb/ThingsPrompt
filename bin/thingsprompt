@@ -103,7 +103,7 @@ async def connect(client, args, auth):
 
 
 def set_prompt(client, session):
-    scope = client.get_scope()
+    scope = client.get_default_scope()
     title = f'{client.connection_info()} ({scope})'
     print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
@@ -141,7 +141,7 @@ async def prompt_loop(client, args):
                 except ValueError:
                     scope = scope.strip('\'"')
 
-                client.use(scope)
+                client.set_default_scope(scope)
                 set_prompt(client, session)
                 continue
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
         auth = [args.token]
 
     client = Client(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS) if args.ssl else None)
-    client.use(args.scope)
+    client.set_default_scope(args.scope)
     loop = asyncio.get_event_loop()
 
     try:
