@@ -1,19 +1,24 @@
 # ThingsPrompt
+
 Shell client for ThingsDB
 
 
 ## Installation
+
 Using pip:
+
 ```shell
 pip install thingsprompt
 ```
 
 Or, clone this project and use the setup
+
 ```shell
-python3 setup.py install
+python setup.py install
 ```
 
-# Example usage
+## Example usage
+
 ```shell
 thingsprompt -n localhost -u admin -p pass
 
@@ -25,7 +30,8 @@ thingsprompt -n localhost -u admin -p pass
 "Hello world!"
 ```
 
-# Arguments
+## Arguments
+
 ```
   -h, --help            show help message and exit
   --node NODE, -n NODE  node address
@@ -38,13 +44,15 @@ thingsprompt -n localhost -u admin -p pass
   --scope SCOPE, -s SCOPE
                         set the initial scope
   --timeout TIMEOUT     connect and query timeout in second
+  --ssl                 enable secure connection (SSL/TLS)
+  --version             print version and exit
 ```
 
-# Special commands
+## Special commands
 
 command        | description
 ---------------|----------------------
 `?`            | Show help.
 `@scope`       | Switch to another scope, for example: `@:stuff`
 `@scope query` | Run a single query in a given scope, for example `@n node_info();`
-`CTRL + n      | Insert a new line
+`CTRL + n`     | Insert a new line

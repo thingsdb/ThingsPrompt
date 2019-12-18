@@ -24,11 +24,17 @@ from thingsdb.client import Client
 from thingsdb.exceptions import ThingsDBError
 
 
+__version__ = '0.1.18'  # keep equal to the one in setup.py
+
 USE_FUN = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s*$')
 SCOPE_QUERY = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s+(.*)$')
 
+
 TAB = ' ' * 4
-HELP = '''
+HELP = f'''
+Version:
+    {__version__}
+
 Special commands:
 
 ?
@@ -216,9 +222,17 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ssl',
         action='store_true',
-        help='Enable secure connection (SSL/TLS)')
+        help='enable secure connection (SSL/TLS)')
+
+    parser.add_argument(
+        '--version',
+        action='store_true',
+        help='print version and exit')
 
     args = parser.parse_args()
+
+    if args.version:
+        sys.exit(__version__)
 
     if args.token is None:
         if args.user is None:
