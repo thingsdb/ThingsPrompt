@@ -1,4 +1,10 @@
+"""
+Upload to PyPI
 
+python3 setup.py sdist
+twine upload --repository pypitest dist/thingsprompt-X.X.X.tar.gz
+twine upload --repository pypi dist/thingsprompt-X.X.X.tar.gz
+"""
 from setuptools import setup, find_packages
 
 try:
@@ -9,7 +15,7 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='0.1.18',  # Update version in thingsprompt as well
+    version='0.1.19',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,

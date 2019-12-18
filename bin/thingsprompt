@@ -12,20 +12,22 @@ import re
 import json
 import base64
 import ssl
+import functools
 from setproctitle import setproctitle
-from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
+from thingsdb.client import Client
+from thingsdb.exceptions import ThingsDBError
+from prompt_toolkit import __version__ as ptk_version
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
-from thingsdb.client import Client
-from thingsdb.exceptions import ThingsDBError
 
 
-__version__ = '0.1.18'  # keep equal to the one in setup.py
+__version__ = '0.1.19'  # keep equal to the one in setup.py
 
+PTK3 = ptk_version.startswith('3.')
 USE_FUN = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s*$')
 SCOPE_QUERY = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s+(.*)$')
 
@@ -129,11 +131,21 @@ async def prompt_loop(client, args):
     session = PromptSession(history=history)
     session.client = client
 
+    if PTK3:
+        aprompt = functools.partial(
+            session.prompt_async,
+            key_bindings=bindings)
+    else:
+        aprompt = functools.partial(
+            session.prompt,
+            async_=True,
+            key_bindings=bindings)
+
     set_prompt(client, session)
 
     while True:
         try:
-            query = await session.prompt(async_=True, key_bindings=bindings)
+            query = await aprompt()
 
             if query.strip() == '?':
                 print(HELP)
@@ -177,7 +189,10 @@ async def prompt_loop(client, args):
 
 if __name__ == '__main__':
     setproctitle('thingsprompt')
-    use_asyncio_event_loop()
+
+    if not PTK3:
+        from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
+        use_asyncio_event_loop()
 
     parser = argparse.ArgumentParser()
 
