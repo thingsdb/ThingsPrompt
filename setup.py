@@ -15,14 +15,14 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='0.1.19',  # Update version in thingsprompt as well
+    version='0.2.0',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Jeroen van der Heijden',
     author_email='jeroen@transceptor.technology',
-    scripts=['bin/thingsprompt'],
+    scripts=['bin/things-prompt'],
     license='MIT',
     classifiers=[
         # How mature is this project? Common values are

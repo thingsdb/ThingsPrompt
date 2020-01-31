@@ -25,7 +25,7 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
 
 
-__version__ = '0.1.19'  # keep equal to the one in setup.py
+__version__ = '0.1.20'  # keep equal to the one in setup.py
 
 PTK3 = ptk_version.startswith('3.')
 USE_FUN = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s*$')
@@ -188,7 +188,7 @@ async def prompt_loop(client, args):
             return
 
 if __name__ == '__main__':
-    setproctitle('thingsprompt')
+    setproctitle('things-prompt')
 
     if not PTK3:
         from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
