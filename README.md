@@ -20,7 +20,7 @@ python setup.py install
 ## Example usage
 
 ```shell
-thingsprompt -n localhost -u admin -p pass
+things-prompt -n localhost -u admin -p pass
 
 
 127.0.0.1:9200 (@thingsdb)> new_collection('my_collection');
