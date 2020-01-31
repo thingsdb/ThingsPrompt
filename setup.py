@@ -23,7 +23,7 @@ setup(
     author='Jeroen van der Heijden',
     author_email='jeroen@transceptor.technology',
     scripts=['bin/things-prompt'],
-    license='MIT',
+    license='GPLv3',
     classifiers=[
         # How mature is this project? Common values are
         #   3 - Alpha
