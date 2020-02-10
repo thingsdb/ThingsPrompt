@@ -5,6 +5,7 @@ Shell client for ThingsDB
 '''
 import os
 import sys
+import pprint
 import argparse
 import asyncio
 import getpass
@@ -15,6 +16,7 @@ import ssl
 import functools
 from setproctitle import setproctitle
 from thingsdb.client import Client
+from thingsdb.client.abc.events import Events
 from thingsdb.exceptions import ThingsDBError
 from prompt_toolkit import __version__ as ptk_version
 from prompt_toolkit.filters import Condition
@@ -23,9 +25,9 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit import print_formatted_text, HTML
 
-
-__version__ = '0.2.1'  # keep equal to the one in setup.py
+__version__ = '0.3.0'  # keep equal to the one in setup.py
 
 PTK3 = ptk_version.startswith('3.')
 USE_FUN = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s*$')
@@ -147,6 +149,9 @@ async def prompt_loop(client, args):
         try:
             query = await aprompt()
 
+            if query is None:
+                continue
+
             if query.strip() == '?':
                 print(HELP)
                 continue
@@ -186,6 +191,61 @@ async def prompt_loop(client, args):
 
         except (EOFError, KeyboardInterrupt):
             return
+
+
+class PrintEvents(Events):
+
+    def on_reconnect(self) -> None:
+        pass
+
+    def on_node_status(self, status: str) -> None:
+        pass
+
+    def on_warning(self, warn: dict) -> None:
+        print_formatted_text(HTML(
+            '\n<b><ansiyellow>'
+            '--------------- WARNING ---------------\n'
+            '{}\n'
+            '</ansiyellow></b>'.format(
+                pprint.pformat(data, indent=4))
+        ))
+
+    def on_watch_init(self, data: dict) -> None:
+        print_formatted_text(HTML(
+            '\n<b><ansiyellow>'
+            '--------------- INIT ---------------\n'
+            '{}\n'
+            '</ansiyellow></b>'.format(
+                pprint.pformat(data, indent=4))
+        ))
+
+    def on_watch_update(self, data: dict) -> None:
+        print_formatted_text(HTML(
+            '\n<b><ansiyellow>'
+            '--------------- UPDATE ---------------\n'
+            '{}\n'
+            '</ansiyellow></b>'.format(
+                pprint.pformat(data, indent=4))
+        ))
+
+    def on_watch_delete(self, data: dict) -> None:
+        print_formatted_text(HTML(
+            '\n<b><ansiyellow>'
+            '--------------- DELETE ---------------\n'
+            '{}\n'
+            '</ansiyellow></b>'.format(
+                pprint.pformat(data, indent=4))
+        ))
+
+    def on_watch_stop(self, data: dict) -> None:
+        print_formatted_text(HTML(
+            '\n<b><ansiyellow>'
+            '--------------- STOP ---------------\n'
+            '{}\n'
+            '</ansiyellow></b>'.format(
+                pprint.pformat(data, indent=4))
+        ))
+
 
 if __name__ == '__main__':
     setproctitle('things-prompt')
@@ -265,6 +325,7 @@ if __name__ == '__main__':
 
     client = Client(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS) if args.ssl else None)
     client.set_default_scope(args.scope)
+    client.add_event_handler(PrintEvents())
     loop = asyncio.get_event_loop()
 
     try:
