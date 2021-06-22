@@ -124,8 +124,17 @@ async def prompt_loop(client, args):
     try:
         history_file = os.path.join(
             os.path.expanduser('~'),
-            '.thingsprompt.history'
+            '.config',
+            'ThingsPrompt',
+            'history'
         )
+        if not os.path.exists(history_file):
+            path = os.path.dirname(history_file)
+            if not os.path.exists(path):
+                os.mkdir(path, 0o700)
+            open(history_file, 'w').close()
+            os.chmod(history_file, 0o600)
+
         history = FileHistory(history_file)
     except Exception as e:
         history = InMemoryHistory()

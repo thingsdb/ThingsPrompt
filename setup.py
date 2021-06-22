@@ -1,7 +1,7 @@
 """
 Upload to PyPI
 
-python3 setup.py sdist
+python setup.py sdist
 twine upload --repository pypitest dist/thingsprompt-X.X.X.tar.gz
 twine upload --repository pypi dist/thingsprompt-X.X.X.tar.gz
 """
@@ -15,7 +15,7 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='0.3.0',  # Update version in thingsprompt as well
+    version='0.3.1',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,
