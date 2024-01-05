@@ -30,10 +30,32 @@ things-prompt -n localhost -u admin -p pass
 "Hello world!"
 ```
 
-## Arguments
+## Example import/export
+
+```shell
+# Export the "stuff" collection to a filename
+things-prompt -n localhost -u admin -p pass -s //stuff export /tmp/dump.mp
+
+# Import the file into a new collection "clone"
+# ThingsDB prompt will automatically create the collection if it does not exist
+things-prompt -n localhost -u admin -p pass -s //clone import /tmp/dump.mp
+```
+
+## Help
 
 ```
-  -h, --help            show help message and exit
+usage: things-prompt [-h] [--node NODE] [--port PORT] [--user USER]
+                     [--password PASSWORD] [--token TOKEN] [--scope SCOPE]
+                     [--timeout TIMEOUT] [--ssl] [--version]
+                     {export,import} ...
+
+positional arguments:
+  {export,import}       sub-command help
+    export              export a collection
+    import              export a collection
+
+optional arguments:
+  -h, --help            show this help message and exit
   --node NODE, -n NODE  node address
   --port PORT           TCP port where the node is listening on for API calls
   --user USER, -u USER  user name
@@ -43,9 +65,37 @@ things-prompt -n localhost -u admin -p pass
                         token key
   --scope SCOPE, -s SCOPE
                         set the initial scope
-  --timeout TIMEOUT     connect and query timeout in second
+  --timeout TIMEOUT     connect and query timeout in seconds
   --ssl                 enable secure connection (SSL/TLS)
   --version             print version and exit
+```
+### Help export
+
+```
+usage: things-prompt export [-h] [--structure-only] filename
+
+positional arguments:
+  filename          filename to store the export
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --structure-only  generates a textual export with only enumerators, types
+                    and procedures; without this argument the export is not
+                    readable but in MessagePack format and intented to be used
+                    for import
+```
+
+### Help import
+
+```
+usage: things-prompt import [-h] [--tasks] filename
+
+positional arguments:
+  filename    filename to import
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --tasks     include tasks when importing a collection
 ```
 
 ## Special commands
