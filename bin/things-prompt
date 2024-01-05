@@ -24,13 +24,15 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
-from prompt_toolkit import print_formatted_text, HTML
 
-__version__ = '1.0.0'  # keep equal to the one in setup.py
+__version__ = '1.0.1'  # keep equal to the one in setup.py
 
 PTK3 = ptk_version.startswith('3.')
-USE_FUN = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s*$')
+USE_FUN = re.compile(r'^\s*(@\s?[\:\/0-9a-zA-Z_]+)\s*$')
 SCOPE_QUERY = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s+(.*)$')
+SCOPE_RE = re.compile(
+    r'^(@([a-z]*):([a-zA-Z_][a-zA-Z0-9_]*))'
+    r'|(/([a-z]*)/([a-zA-Z_][a-zA-Z0-9_]*))$')
 
 
 TAB = ' ' * 4
@@ -52,6 +54,17 @@ CTRL + n
 
 bindings = KeyBindings()
 session = None
+
+
+def collection_from_scope(scope: str):
+    m = SCOPE_RE.match(scope)
+    if m is None:
+        return
+    if m.group(1) is not None:
+        return m.group(3) if 'collection'.startswith(m.group(2)) else None
+    if m.group(4) is not None:
+        return m.group(6) if 'collection'.startswith(m.group(5)) else None
+    return None
 
 
 class BinEncode(json.JSONEncoder):
@@ -167,10 +180,9 @@ async def prompt_loop(client, args):
             use = USE_FUN.match(query)
             if use:
                 scope = use.group(1)
-                try:
-                    scope = int(scope)
-                except ValueError:
-                    scope = scope.strip('\'"')
+                scope = scope.strip('\'"')
+                if scope[1] == ' ':
+                    scope = scope[2:]
 
                 client.set_default_scope(scope)
                 set_prompt(client, session)
@@ -199,6 +211,32 @@ async def prompt_loop(client, args):
 
         except (EOFError, KeyboardInterrupt):
             return
+
+
+async def do_export(client, fn: str, collection: str, dump: bool):
+    with open(fn, 'wb') as f:
+        try:
+            dump = await client.query("""//ti
+                export({dump:,});
+            """, dump=dump, scope=f'//{collection}')
+        except ThingsDBError as e:
+            print(f'{e.__class__.__name__}: {e}')
+        f.write(dump)
+
+
+async def do_import(client, fn: str, collection: str, import_tasks: bool):
+    with open(fn, 'rb') as f:
+        data = f.read()
+        has_collection = await client.has_collection(collection)
+        try:
+            if has_collection is False:
+                await client.new_collection(collection)
+
+            await client.query("""//ti
+                import(data, {import_tasks:,});
+            """, data=data, import_tasks=import_tasks, scope=f'//{collection}')
+        except ThingsDBError as e:
+            print(f'{e.__class__.__name__}: {e}')
 
 
 if __name__ == '__main__':
@@ -258,6 +296,37 @@ if __name__ == '__main__':
         action='store_true',
         help='print version and exit')
 
+    subparsers = parser.add_subparsers(help='sub-command help')
+    parser_exp = subparsers.add_parser(
+        'export',
+        help='export a collection')
+
+    parser_exp.add_argument(
+        'filename',
+        help='filename to store the export')
+
+    parser_exp.add_argument(
+        '--structure-only',
+        action='store_true',
+        help=(
+            'generates a textual export with only enumerators, types and '
+            'procedures; '
+            'without this argument the export is not readable but in '
+            'MessagePack format and intented to be used for import'))
+
+    parser_imp = subparsers.add_parser(
+        'import',
+        help='export a collection')
+
+    parser_imp.add_argument(
+        'filename',
+        help='filename to import')
+
+    parser_imp.add_argument(
+        '--tasks',
+        action='store_true',
+        help='include tasks when importing a collection')
+
     args = parser.parse_args()
 
     if args.version:
@@ -287,8 +356,29 @@ if __name__ == '__main__':
         print(f'{e.__class__.__name__}: {e}', file=sys.stderr)
         exit(1)
 
-    with patch_stdout():
-        loop.run_until_complete(prompt_loop(client, args))
+    has_import = hasattr(args, 'tasks')
+    has_export = hasattr(args, 'structure_only')
+
+    if has_export:
+        collection = collection_from_scope(args.scope)
+        if collection is None:
+            sys.exit(
+                'not a valid collection scope; '
+                'use --scope and provide a collection scope (e.g //stuff)')
+        dump = not args.structure_only
+        fn = args.filename
+        loop.run_until_complete(do_export(client, fn, collection, dump))
+    elif has_import:
+        if not args.scope:
+            sys.exit('argument --import requires a scope (--scope)')
+        collection = collection_from_scope(args.scope)
+        if collection is None:
+            sys.exit('not a valid collection scope')
+        fn = args.filename
+        loop.run_until_complete(do_import(client, fn, collection, args.tasks))
+    else:
+        with patch_stdout():
+            loop.run_until_complete(prompt_loop(client, args))
 
     client.close()
     loop.run_until_complete(client.wait_closed())
