@@ -5,7 +5,6 @@ Shell client for ThingsDB
 '''
 import os
 import sys
-import pprint
 import argparse
 import asyncio
 import getpass
@@ -22,10 +21,14 @@ from prompt_toolkit.filters import Condition
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit.styles.pygments import style_from_pygments_cls
+from pygments.lexers.thingsdb import ThingsDBLexer
+from pygments.styles import get_style_by_name
 
-__version__ = '1.0.1'  # keep equal to the one in setup.py
+__version__ = '1.0.2'  # keep equal to the one in setup.py
 
 PTK3 = ptk_version.startswith('3.')
 USE_FUN = re.compile(r'^\s*(@\s?[\:\/0-9a-zA-Z_]+)\s*$')
@@ -33,7 +36,6 @@ SCOPE_QUERY = re.compile(r'^\s*(@[\:0-9a-zA-Z_]+)\s+(.*)$')
 SCOPE_RE = re.compile(
     r'^(@([a-z]*):([a-zA-Z_][a-zA-Z0-9_]*))'
     r'|(/([a-z]*)/([a-zA-Z_][a-zA-Z0-9_]*))$')
-
 
 TAB = ' ' * 4
 HELP = f'''
@@ -127,7 +129,6 @@ async def connect(client, args, auth):
 def set_prompt(client, session):
     scope = client.get_default_scope()
     title = f'{client.connection_info()} ({scope})'
-    print(f'\33]0;{title}\a', end='', flush=True)
     session.message = f'{title}> '
 
 
@@ -151,7 +152,14 @@ async def prompt_loop(client, args):
     except Exception as e:
         history = InMemoryHistory()
 
-    session = PromptSession(history=history)
+    if args.style == 'none':
+        session = PromptSession(history=history)
+    else:
+        style = style_from_pygments_cls(get_style_by_name(args.style))
+        session = PromptSession(
+            history=history,
+            lexer=PygmentsLexer(ThingsDBLexer),
+            style=style)
     session.client = client
 
     if PTK3:
@@ -290,6 +298,12 @@ if __name__ == '__main__':
         '--ssl',
         action='store_true',
         help='enable secure connection (SSL/TLS)')
+
+    parser.add_argument(
+        '--style',
+        default='dracula',
+        choices=['dracula', 'monokai', 'colorful', 'friendly', 'vim', 'none'],
+        help='syntax highlighting style or none for disabled')
 
     parser.add_argument(
         '--version',
