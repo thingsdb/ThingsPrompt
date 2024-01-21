@@ -46,7 +46,9 @@ things-prompt -n localhost -u admin -p pass -s //clone import /tmp/dump.mp
 ```
 usage: things-prompt [-h] [--node NODE] [--port PORT] [--user USER]
                      [--password PASSWORD] [--token TOKEN] [--scope SCOPE]
-                     [--timeout TIMEOUT] [--ssl] [--version]
+                     [--timeout TIMEOUT] [--ssl] [--hide-connection-info]
+                     [--style {dracula,monokai,colorful,friendly,vim,none}]
+                     [--version]
                      {export,import} ...
 
 positional arguments:
@@ -67,6 +69,10 @@ optional arguments:
                         set the initial scope
   --timeout TIMEOUT     connect and query timeout in seconds
   --ssl                 enable secure connection (SSL/TLS)
+  --hide-connection-info
+                        no address and port info in prompt
+  --style {dracula,monokai,colorful,friendly,vim,none}
+                        syntax highlighting style or none for disabled
   --version             print version and exit
 ```
 ### Help export
