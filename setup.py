@@ -15,7 +15,7 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='1.0.2',  # Update version in thingsprompt as well
+    version='1.0.3',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,
@@ -40,14 +40,15 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     install_requires=[
         'setproctitle',
         'python-thingsdb',
-        'prompt-toolkit'
+        'prompt-toolkit',
+        'pygments',
     ],
-    keywords='database connector orm',
+    keywords='database connector prompt thingsdb',
 )
