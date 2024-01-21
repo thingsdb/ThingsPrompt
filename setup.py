@@ -1,6 +1,7 @@
 """
 Upload to PyPI
 
+pip -v install --use-pep517 -e .
 python setup.py sdist
 twine upload --repository pypitest dist/thingsprompt-X.X.X.tar.gz
 twine upload --repository pypi dist/thingsprompt-X.X.X.tar.gz
