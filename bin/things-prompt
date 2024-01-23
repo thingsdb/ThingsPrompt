@@ -31,7 +31,7 @@ from pygments.token import Comment, Keyword, Name, Number, String, Text, \
     Operator, Punctuation, Whitespace
 
 
-__version__ = '1.0.3'  # keep equal to the one in setup.py
+__version__ = '1.0.4'  # keep equal to the one in setup.py
 
 
 class ThingsDBLexer(RegexLexer):
@@ -125,7 +125,7 @@ class ThingsDBLexer(RegexLexer):
              r'rename_type|forbidden_err|lookup_err|max_quota_err|node_err|'
              r'num_arguments_err|operation_err|overflow_err|syntax_err|'
              r'collection_info|type_err|value_err|zero_div_err|abs|ceil|cos|'
-             r'exp|floor|log10|log2|loge|pow|sin|sqrt|tan)'
+             r'exp|floor|log10|log2|loge|pow|round|sin|sqrt|tan)'
              r'(\()',
              bygroups(Name.Function, Punctuation),
              'arguments'),
