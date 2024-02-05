@@ -53,8 +53,8 @@ usage: things-prompt [-h] [--node NODE] [--port PORT] [--user USER]
 
 positional arguments:
   {export,import}       sub-command help
-    export              export a collection
-    import              export a collection
+    export              export a collection to file
+    import              import a collection from file
 
 optional arguments:
   -h, --help            show this help message and exit
