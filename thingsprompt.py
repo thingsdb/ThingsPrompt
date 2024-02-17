@@ -500,7 +500,8 @@ def main():
 
     if args.ssl:
         context = ssl.SSLContext( ssl.PROTOCOL_TLS_CLIENT )
-        context.verify_mode = ssl.CERT_OPTIONAL
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.maximum_version = ssl.TLSVersion.TLSv1_3
         client = Client(ssl=context)
