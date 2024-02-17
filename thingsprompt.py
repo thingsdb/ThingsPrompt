@@ -507,7 +507,6 @@ def main():
     else:
         client = Client(ssl=None)
 
-    client = Client(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS) if args.ssl else None)
     client.set_default_scope(args.scope)
     loop = asyncio.get_event_loop()
 
