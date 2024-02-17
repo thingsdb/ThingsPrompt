@@ -498,6 +498,15 @@ def main():
             sys.exit('use arguments -t/--token or -u/--user, not both')
         auth = [args.token]
 
+    if args.ssl:
+        context = ssl.SSLContext( ssl.PROTOCOL_TLS_CLIENT )
+        context.verify_mode = ssl.CERT_OPTIONAL
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.maximum_version = ssl.TLSVersion.TLSv1_3
+        client = Client(ssl=context)
+    else:
+        client = Client(ssl=None)
+
     client = Client(ssl=ssl.SSLContext(ssl.PROTOCOL_TLS) if args.ssl else None)
     client.set_default_scope(args.scope)
     loop = asyncio.get_event_loop()
