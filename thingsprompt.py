@@ -31,7 +31,7 @@ from pygments.token import Comment, Keyword, Name, Number, String, Text, \
     Operator, Punctuation, Whitespace
 
 
-__version__ = '1.0.5'  # keep equal to the one in setup.py
+__version__ = '1.0.6'  # keep equal to the one in setup.py
 
 
 class ThingsDBLexer(RegexLexer):
@@ -282,7 +282,7 @@ async def prompt_loop(client, args):
             os.chmod(history_file, 0o600)
 
         history = FileHistory(history_file)
-    except Exception as e:
+    except Exception:
         history = InMemoryHistory()
 
     if args.style == 'none':
@@ -380,7 +380,7 @@ async def do_import(client, fn: str, collection: str, import_tasks: bool):
             print(f'{e.__class__.__name__}: {e}')
 
 
-if __name__ == '__main__':
+def main():
     setproctitle('things-prompt')
 
     if not PTK3:
@@ -534,3 +534,7 @@ if __name__ == '__main__':
 
     client.close()
     loop.run_until_complete(client.wait_closed())
+
+
+if __name__ == '__main__':
+    main()
