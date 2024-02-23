@@ -177,11 +177,11 @@ Special commands:
 ?
     This help.
 <@scope>
-    Switch to another scope
+    Switch to another scope, for example: @ //stuff
 <@scope> <query>
-    Run a single query in a given scope
+    Run a single query in a given scope, for example: @n node_info();
 CTRL + n
-    Insert a new line
+    Insert a new line.
 '''
 
 bindings = KeyBindings()
@@ -370,18 +370,37 @@ async def do_export(client, fn: str, collection: str, dump: bool):
 
 
 async def do_import(client, fn: str, collection: str, import_tasks: bool):
+    is_bin = True
     with open(fn, 'rb') as f:
         data = f.read()
-        has_collection = await client.has_collection(collection)
-        try:
-            if has_collection is False:
-                await client.new_collection(collection)
 
+    if (data[0]) < 128:
+        # might be plain text, at least not a MessagePack export.
+        try:
+            with open(fn, 'r') as f:
+                data = f.read()
+        except Exception as e:
+            print(f'Invalid export file ({e.__class__.__name__}: {e})')
+            return
+
+        if import_tasks:
+            print('Cannot use --tasks with plain text import')
+
+        is_bin = False
+
+    has_collection = await client.has_collection(collection)
+    try:
+        if has_collection is False:
+            await client.new_collection(collection)
+
+        if is_bin:
             await client.query("""//ti
                 import(data, {import_tasks:,});
             """, data=data, import_tasks=import_tasks, scope=f'//{collection}')
-        except ThingsDBError as e:
-            print(f'{e.__class__.__name__}: {e}')
+        else:
+            await client.query(data, scope=f'//{collection}')
+    except ThingsDBError as e:
+        print(f'{e.__class__.__name__}: {e}')
 
 
 def main():
@@ -468,15 +487,17 @@ def main():
             'generates a textual export with only enumerators, types and '
             'procedures; '
             'without this argument the export is not readable but in '
-            'MessagePack format and intented to be used for import'))
+            'MessagePack format and intended to be used for import'))
 
     parser_imp = subparsers.add_parser(
         'import',
-        help='export a collection')
+        help='import a collection')
 
     parser_imp.add_argument(
         'filename',
-        help='filename to import')
+        help=(
+            'filename to import; '
+            'can be ThingsDB code (*.ti) or a binary export (*.mp)'))
 
     parser_imp.add_argument(
         '--tasks',

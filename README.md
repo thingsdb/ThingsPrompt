@@ -1,6 +1,6 @@
 # ThingsPrompt
 
-Shell client for ThingsDB
+Shell client for ThingsDB.
 
 
 ## Installation
@@ -89,7 +89,7 @@ optional arguments:
   -h, --help        show this help message and exit
   --structure-only  generates a textual export with only enumerators, types
                     and procedures; without this argument the export is not
-                    readable but in MessagePack format and intented to be used
+                    readable but in MessagePack format and intended to be used
                     for import
 ```
 
@@ -99,7 +99,7 @@ optional arguments:
 usage: things-prompt import [-h] [--tasks] filename
 
 positional arguments:
-  filename    filename to import
+  filename    filename to import; can be ThingsDB code (*.ti) or a binary export (*.mp)
 
 optional arguments:
   -h, --help  show this help message and exit
