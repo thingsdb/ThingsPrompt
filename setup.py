@@ -16,7 +16,7 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='1.0.6',  # Update version in thingsprompt as well
+    version='1.0.7',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,
@@ -47,6 +47,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
     install_requires=[
         'setproctitle',

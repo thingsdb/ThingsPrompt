@@ -31,7 +31,7 @@ from pygments.token import Comment, Keyword, Name, Number, String, Text, \
     Operator, Punctuation, Whitespace
 
 
-__version__ = '1.0.6'  # keep equal to the one in setup.py
+__version__ = '1.0.7'  # keep equal to the one in setup.py
 
 
 class ThingsDBLexer(RegexLexer):
@@ -355,14 +355,18 @@ async def prompt_loop(client, args):
 
 
 async def do_export(client, fn: str, collection: str, dump: bool):
-    with open(fn, 'wb') as f:
+    try:
+        data = await client.query("""//ti
+            export({dump:,});
+        """, dump=dump, scope=f'//{collection}')
+    except ThingsDBError as e:
+        print(f'{e.__class__.__name__}: {e}')
+    else:
         try:
-            dump = await client.query("""//ti
-                export({dump:,});
-            """, dump=dump, scope=f'//{collection}')
-        except ThingsDBError as e:
+            with open(fn, 'wb' if dump else 'w') as f:
+                f.write(data)
+        except Exception as e:
             print(f'{e.__class__.__name__}: {e}')
-        f.write(dump)
 
 
 async def do_import(client, fn: str, collection: str, import_tasks: bool):
