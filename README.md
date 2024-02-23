@@ -30,6 +30,8 @@ things-prompt -n localhost -u admin -p pass
 "Hello world!"
 ```
 
+> For users encountering issues executing the `things-prompt` command due to the script directory not being included in their system's PATH environment variable, an alternative invocation method exists. Users can bypass the PATH requirement by directly invoking the module via `python -m thingsprompt` (note the lack of hyphen). This approach is particularly advantageous in scenarios where multiple Python environments host thingsprompt installations, and precise environment selection is crucial.
+
 ## Example import/export
 
 ```shell
