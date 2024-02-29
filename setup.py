@@ -6,7 +6,7 @@ python setup.py sdist
 twine upload --repository pypitest dist/thingsprompt-X.X.X.tar.gz
 twine upload --repository pypi dist/thingsprompt-X.X.X.tar.gz
 """
-from setuptools import setup
+from setuptools import setup, find_packages
 
 try:
     with open('README.md', 'r') as f:
@@ -16,7 +16,7 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='1.0.8',  # Update version in thingsprompt as well
+    version='1.0.9',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,
@@ -24,7 +24,7 @@ setup(
     author='Jeroen van der Heijden',
     author_email='jeroen@cesbit.com',
     entry_points = {
-        'console_scripts': ['things-prompt=thingsprompt:main'],
+        'console_scripts': ['things-prompt=thingsprompt.thingsprompt:main'],
     },
     license='GPLv3',
     classifiers=[
@@ -49,6 +49,7 @@ setup(
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
     ],
+    packages=find_packages(),
     install_requires=[
         'setproctitle',
         'python-thingsdb',
