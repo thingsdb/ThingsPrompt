@@ -31,7 +31,7 @@ from pygments.token import Comment, Keyword, Name, Number, String, Text, \
     Operator, Punctuation, Whitespace
 
 
-__version__ = '1.0.7'  # keep equal to the one in setup.py
+__version__ = '1.0.8'  # keep equal to the one in setup.py
 
 
 class ThingsDBLexer(RegexLexer):
