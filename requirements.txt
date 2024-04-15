@@ -1,4 +1,4 @@
 setproctitle
-python-thingsdb>=1.0.4
+python-thingsdb>=1.1.1
 prompt-toolkit>=3.0.43
 pygments>=2.17.2
