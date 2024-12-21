@@ -31,7 +31,7 @@ from pygments.token import Comment, Keyword, Name, Number, String, Text, \
     Operator, Punctuation, Whitespace
 
 
-__version__ = '1.0.10'  # keep equal to the one in setup.py
+__version__ = '1.0.11'  # keep equal to the one in setup.py
 
 
 class ThingsDBLexer(RegexLexer):
@@ -526,18 +526,18 @@ def main():
             sys.exit('use arguments -t/--token or -u/--user, not both')
         auth = [args.token]
 
+    loop = asyncio.get_event_loop()
+
     if args.ssl:
         context = ssl.SSLContext( ssl.PROTOCOL_TLS_CLIENT )
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.maximum_version = ssl.TLSVersion.TLSv1_3
-        client = Client(ssl=context)
+        client = Client(ssl=context, loop=loop)
     else:
-        client = Client(ssl=None)
-
+        client = Client(ssl=None, loop=loop)
     client.set_default_scope(args.scope)
-    loop = asyncio.get_event_loop()
 
     try:
         loop.run_until_complete(connect(client, args, auth))

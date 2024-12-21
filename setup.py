@@ -16,7 +16,7 @@ except IOError:
 
 setup(
     name='thingsprompt',
-    version='1.0.10',  # Update version in thingsprompt as well
+    version='1.0.11',  # Update version in thingsprompt as well
     description='ThingsDB Prompt',
     url='https://github.com/thingsdb/ThingsPrompt',
     long_description=long_description,
