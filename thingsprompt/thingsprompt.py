@@ -529,7 +529,7 @@ def main():
     loop = asyncio.get_event_loop()
 
     if args.ssl:
-        context = ssl.SSLContext( ssl.PROTOCOL_TLS_CLIENT )
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
         context.minimum_version = ssl.TLSVersion.TLSv1_2
